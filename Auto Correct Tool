@@ -1,0 +1,60 @@
+#Auto-correct Tool
+
+import re
+import textdistance
+from collections import Counter
+
+class AutoCorrect:
+    def __init__(self, corpus):
+        self.corpus = corpus
+        self.word_freq = self.build_word_frequency()
+
+    def build_word_frequency(self):
+        words = re.findall(r'\w+', self.corpus.lower())
+        return Counter(words)
+
+    def is_valid_word(self, word):
+        return word.lower() in self.word_freq
+
+    def get_correction(self, word):
+        return min(self.word_freq.keys(), key=lambda x: textdistance.levenshtein.normalized_similarity(word.lower(), x))
+
+    def correct_text(self, text):
+        corrected_text = []
+        words = re.findall(r'\w+|\W+', text)
+
+        for word in words:
+            if re.match(r'\W+', word):
+                corrected_text.append(word)
+            else:
+                if not self.is_valid_word(word):
+                    corrected_word = self.get_correction(word)
+                    corrected_text.append(corrected_word)
+                else:
+                    corrected_text.append(word)
+
+        return ''.join(corrected_text)
+
+    def get_suggestions(self, word, max_suggestions=5):
+        suggestions = sorted(self.word_freq.keys(), key=lambda x: textdistance.levenshtein.normalized_similarity(word.lower(), x), reverse=True)
+        return suggestions[:max_suggestions]
+
+# Sample usage:
+corpus_text = "Hello, My name is Piyush."
+auto_corrector = AutoCorrect(corpus_text)
+
+# Test auto-correct
+text_to_correct = "neme"
+corrected_text = auto_corrector.correct_text(text_to_correct)
+print(f"Auto-corrected: {corrected_text}")
+
+# Test word suggestions
+word_to_suggest = "autocorect"
+suggestions = auto_corrector.get_suggestions(word_to_suggest)
+print(f"Suggestions: {suggestions}")
+
+'''
+output:
+Auto-corrected: is
+Suggestions: ['hello', 'name', 'my', 'is', 'piyush']
+'''
